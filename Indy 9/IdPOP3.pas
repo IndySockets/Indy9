@@ -79,7 +79,7 @@ type
     function RetrieveMailBoxSize: integer;
     function RetrieveRaw(const MsgNum: Integer; const Dest: TStrings): boolean;
     function UIDL(const ADest: TStrings; const AMsgNum: Integer = -1): Boolean;
-    property HasAPOP read FHasAPOP;
+    property HasAPOP: Boolean read FHasAPOP;
   published
     property APOP: Boolean read FAPOP write FAPOP default DEF_APOP;
     property AutoLogin: Boolean read FAutoLogin write FAutoLogin default DEF_AUTOLOGIN;
@@ -182,7 +182,6 @@ end;
 procedure TIdPOP3.Login;
 var
   S: String;
-  I: Integer;
 begin
   if FAPOP then begin
     if FHasAPOP then begin
@@ -192,7 +191,7 @@ begin
       finally
         Free;
       end;//try
-      SendCmd('APOP ' + Username + ' '+S, wsOk);    {Do not Localize}
+      SendCmd('APOP ' + Username + ' ' + S, wsOk);    {Do not Localize}
     end else begin
       raise EIdException.Create(RSPOP3ServerDoNotSupportAPOP);
     end;
