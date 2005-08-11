@@ -289,7 +289,8 @@ type
     fOnCommandVRFY,
     fOnCommandEXPN,
     fOnCommandTURN,
-    fOnCommandAUTH: TBasicHandler;
+    fOnCommandAUTH,
+    fOnCommandRSET: TBasicHandler;
     fCheckUser: TUserHandler;
     //
     procedure CommandData(ASender: TIdCommand);
@@ -353,6 +354,8 @@ type
       fOnCommandExpn;
     property OnCommandTURN: TBasicHandler read fOnCommandTurn write
       fOnCommandTurn;
+    property OnCommandRSET: TBasicHandler read fOnCommandRset write
+      fOnCommandRset;
   end;
 
   TIdSMTPState = (idSMTPNone,idSMTPHelo,idSMTPMail,idSMTPRcpt,idSMTPData);
@@ -876,8 +879,8 @@ begin
   end else begin
     LThread.SMTPState := idSMTPNone;
   end;
-  if Assigned(FOnReset) then begin
-    FOnReset(ASender);
+  if Assigned(FOnCommandRset) then begin
+    FOnCommandRset(ASender);
   end;
 end;
 
