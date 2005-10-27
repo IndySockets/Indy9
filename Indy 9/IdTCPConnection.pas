@@ -937,6 +937,7 @@ var
   LBuffer: TMemoryStream;
   LSize: Integer;
   LStreamEnd: Integer;
+  LBufferingStarted: Boolean;
 begin
   if AAll then begin
     AStream.Position := 0;
@@ -948,28 +949,48 @@ begin
     LStreamEnd := ASize + AStream.Position;
   end;
   LSize := LStreamEnd - AStream.Position;
-  if AWriteByteCount then begin
-    WriteInteger(LSize);
+  LBufferingStarted := FWriteBuffer = nil;
+  if LBufferingStarted then
+  begin
+    OpenWriteBuffer;
   end;
-  BeginWork(wmWrite, LSize); try
-    LBuffer := TMemoryStream.Create; try
-      LBuffer.SetSize(FSendBufferSize);
-      while True do begin
-        LSize := Min(LStreamEnd - AStream.Position, FSendBufferSize);
-        if LSize = 0 then begin
-          Break;
+  try
+    if AWriteByteCount then begin
+      WriteInteger(LSize);
+    end;
+    BeginWork(wmWrite, LSize); try
+      LBuffer := TMemoryStream.Create; try
+        LBuffer.SetSize(FSendBufferSize);
+        while True do begin
+          LSize := Min(LStreamEnd - AStream.Position, FSendBufferSize);
+          if LSize = 0 then begin
+            Break;
+          end;
+          // Do not use ReadBuffer. Some source streams are real time and will not
+          // return as much data as we request. Kind of like recv()
+          // NOTE: We use .Size - size must be supported even if real time
+          LSize := AStream.Read(LBuffer.Memory^, LSize);
+          if LSize = 0 then begin
+            raise EIdNoDataToRead.Create(RSIdNoDataToRead);
+          end;
+          WriteBuffer(LBuffer.Memory^, LSize);
         end;
-        // Do not use ReadBuffer. Some source streams are real time and will not
-        // return as much data as we request. Kind of like recv()
-        // NOTE: We use .Size - size must be supported even if real time
-        LSize := AStream.Read(LBuffer.Memory^, LSize);
-        if LSize = 0 then begin
-          raise EIdNoDataToRead.Create(RSIdNoDataToRead);
-        end;
-        WriteBuffer(LBuffer.Memory^, LSize);
+      finally FreeAndNil(LBuffer); end;
+    finally EndWork(wmWrite); end;
+    if LBufferingStarted then
+    begin
+      CloseWriteBuffer;
+    end;
+  except
+    on E: Exception do
+    begin
+      if LBufferingStarted then
+      begin
+        CancelWriteBuffer;
       end;
-    finally FreeAndNil(LBuffer); end;
-  finally EndWork(wmWrite); end;
+      raise;
+    end;
+  end;
 end;
 
 procedure TIdTCPConnection.WriteStrings(AValue: TStrings; const AWriteLinesCount: Boolean = False);
