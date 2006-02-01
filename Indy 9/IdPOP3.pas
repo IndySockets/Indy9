@@ -61,6 +61,7 @@ type
   protected
     FAPOP: Boolean;
     FAutoLogin: Boolean;
+    FAPOPToken: String;
     FHasAPOP: Boolean;
   public
     function CheckMessages: longint;
@@ -123,9 +124,13 @@ var
   i: Integer;
 begin
   FHasAPOP := False;
+  FAPOPToken := ''; // RLebeau: February 1, 2006
+
   inherited Connect(ATimeout); // ds 2001-AUG-31
   try
     GetResponse([wsOk]);
+
+    // the initial greeting text is needed to determine APOP availability
     S := LastCmdResult.Text[0];
     I := Pos('<', S);    {Do not Localize}
     if I > 0 then begin
@@ -139,7 +144,8 @@ begin
     end else begin
       S := ''; //no time-stamp    {Do not Localize}
     end;
-    FHasAPOP := (Length(S) > 0);
+    FAPOPToken := S; // RLebeau: February 1, 2006
+    FHasAPOP := (Length(FAPOPToken) > 0);
     if FAutoLogin then begin
       Login;
     end;
@@ -187,7 +193,7 @@ begin
     if FHasAPOP then begin
       with TIdHashMessageDigest5.Create do
       try
-        S := LowerCase(TIdHash128.AsHex(HashValue(S+Password)));
+        S := LowerCase(TIdHash128.AsHex(HashValue(FAPOPToken+Password))); // RLebeau: February 1, 2006
       finally
         Free;
       end;//try
