@@ -151,6 +151,7 @@ type
   // Must be documented
   TIdHTTPProtocolVersion = (pv1_0, pv1_1);
 
+  TIdHTTPOnHeadersAvailable = procedure(Sender: TObject; AHeaders: TIdHeaderList; var VContinue: Boolean) of object;
   TIdHTTPOnRedirectEvent = procedure(Sender: TObject; var dest: string; var NumRedirect: Integer; var Handled: boolean; var VMethod: TIdHTTPMethod) of object;
   TIdOnSelectAuthorization = procedure(Sender: TObject; var AuthenticationClass: TIdAuthenticationClass; AuthInfo: TIdHeaderList) of object;
   TIdOnAuthorization = procedure(Sender: TObject; Authentication: TIdAuthentication; var Handled: boolean) of object;
@@ -238,6 +239,7 @@ type
     FHTTPProto: TIdHTTPProtocol;
     FProxyParameters: TIdProxyConnectionInfo;
     //
+    FOnHeadersAvailable: TIdHTTPOnHeadersAvailable;
     FOnRedirect: TIdHTTPOnRedirectEvent;
     FOnSelectAuthorization: TIdOnSelectAuthorization;
     FOnSelectProxyAuthorization: TIdOnSelectAuthorization;
@@ -324,6 +326,7 @@ type
     property ProxyParams: TIdProxyConnectionInfo read FProxyParameters write FProxyParameters;
     property Request: TIdHTTPRequest read GetRequestHeaders write SetRequestHeaders;
     property HTTPOptions: TIdHTTPOptions read FOptions write FOptions;
+    property OnHeadersAvailable: TIdHTTPOnHeadersAvailable read FOnHeadersAvailable write FOnHeadersAvailable;
     // Fired when a rediretion is requested.
     property OnRedirect: TIdHTTPOnRedirectEvent read FOnRedirect write FOnRedirect;
     property OnSelectAuthorization: TIdOnSelectAuthorization read FOnSelectAuthorization write FOnSelectAuthorization;
@@ -353,6 +356,7 @@ type
     property ProxyParams;
     property Request;
     property HTTPOptions;
+    property OnHeadersAvailable;
     // Fired when a rediretion is requested.
     property OnRedirect;
     property OnSelectAuthorization;
@@ -1421,8 +1425,9 @@ var
 begin
   Request.SetHeaders;
   FHTTP.ProxyParams.SetHeaders(Request.RawHeaders);
-  if Assigned(AURI) then
+  if Assigned(AURI) then begin
     FHTTP.SetCookies(AURI, Request);
+  end;
 
   // This is a wrokaround for some HTTP servers wich does not implement properly the HTTP protocol
   FHTTP.OpenWriteBuffer;
@@ -1469,6 +1474,7 @@ begin
 end;
 
 function TIdHTTPProtocol.ProcessResponse: TIdHTTPWhatsNext;
+
   procedure RaiseException;
   var
     LRespStream: TStringStream;
@@ -1506,6 +1512,14 @@ function TIdHTTPProtocol.ProcessResponse: TIdHTTPWhatsNext;
     end;
   end;
 
+  function HeadersCanContinue: Boolean;
+  begin
+    Result := True;
+    if Assigned(FHTTP.OnHeadersAvailable) then begin
+      FHTTP.OnHeadersAvailable(FHTTP, Response.RawHeaders, Result);
+    end;
+  end;
+
 var
   LTemp: Integer;
   LLocation: string;
@@ -1513,7 +1527,16 @@ var
   LResponseDigit: Integer;
   LNeedAutorization: Boolean;
 begin
-  result := wnDontKnow;
+
+  // provide the user with the headers and let the user decide
+  // whether the response processing should continue...
+  if not HeadersCanContinue then begin
+    Response.KeepAlive := False; // force DoRequest() to disconnect the connection
+    Result := wnJustExit;
+    Exit;
+  end;
+
+  Result := wnDontKnow;
   LNeedAutorization := False;
   LResponseDigit := Response.ResponseCode div 100;
   // Handle Redirects
