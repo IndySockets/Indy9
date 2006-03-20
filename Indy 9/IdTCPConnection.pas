@@ -690,7 +690,7 @@ var
   end;
 
 begin
-  if (AByteCount = -1) and (AReadUntilDisconnect = False) then begin
+  if (AByteCount < 0) and (not AReadUntilDisconnect) then begin
     // Read size from connection
     AByteCount := ReadInteger;
   end;
@@ -711,10 +711,16 @@ begin
     // If data already exists in the buffer, write it out first.
     if InputBuffer.Size > 0 then begin
       i := Min(InputBuffer.Size, LWorkCount);
-      InputBuffer.Position := 0;
-      AStream.CopyFrom(InputBuffer, i);
-      InputBuffer.Remove(i);
-      Dec(LWorkCount, i);
+      if i > 0 then begin
+        InputBuffer.Position := 0;
+        AStream.CopyFrom(InputBuffer, i);
+        InputBuffer.Remove(i);
+        Dec(LWorkCount, i);
+      end else if LWorkCount < 0 then begin
+        InputBuffer.Position := 0;
+        AStream.CopyFrom(InputBuffer, 0);
+        InputBuffer.Clear;
+      end;
     end;
 
     LBufSize := Min(LWorkCount, RecvBufferSize);
@@ -937,7 +943,7 @@ var
   LBuffer: TMemoryStream;
   LSize: Integer;
   LStreamEnd: Integer;
-  LBufferingStarted: Boolean;
+//  LBufferingStarted: Boolean;
 begin
   if AAll then begin
     AStream.Position := 0;
@@ -949,20 +955,32 @@ begin
     LStreamEnd := ASize + AStream.Position;
   end;
   LSize := LStreamEnd - AStream.Position;
+
+  // RLebeau 3/20/2006: DO NOT ENABLE WRITE BUFFERING IN THIS METHOD!
+  //
+  // When sending large streams, this can easily cause "Out of Memory" errors.
+  // It is the caller's responsibility to enable/disable write buffering as
+  // needed before calling one of the Write...() methods.
+  //
+  // Also, forcing write buffering in this method has major impacts on
+  // TIdFTP, TIdFTPServer, and TIdHTTPServer.
+
+  {
   LBufferingStarted := FWriteBuffer = nil;
   if LBufferingStarted then
   begin
     OpenWriteBuffer;
   end;
   try
-    if AWriteByteCount then begin
-      WriteInteger(LSize);
-    end;
-    BeginWork(wmWrite, LSize); try
-      LBuffer := TMemoryStream.Create; try
-        LBuffer.SetSize(FSendBufferSize);
-        while True do begin
-          LSize := Min(LStreamEnd - AStream.Position, FSendBufferSize);
+  }
+    LBuffer := TMemoryStream.Create; try
+      if AWriteByteCount then begin
+        WriteInteger(LSize);
+      end;
+      BeginWork(wmWrite, LSize); try
+        LBuffer.Size := FSendBufferSize;
+        repeat
+          LSize := Min(LStreamEnd - AStream.Position, LBuffer.Size);
           if LSize = 0 then begin
             Break;
           end;
@@ -974,9 +992,11 @@ begin
             raise EIdNoDataToRead.Create(RSIdNoDataToRead);
           end;
           WriteBuffer(LBuffer.Memory^, LSize);
-        end;
-      finally FreeAndNil(LBuffer); end;
-    finally EndWork(wmWrite); end;
+        until False;
+      finally EndWork(wmWrite); end;
+    finally FreeAndNil(LBuffer); end;
+
+    {
     if LBufferingStarted then
     begin
       CloseWriteBuffer;
@@ -991,6 +1011,7 @@ begin
       raise;
     end;
   end;
+  }
 end;
 
 procedure TIdTCPConnection.WriteStrings(AValue: TStrings; const AWriteLinesCount: Boolean = False);
@@ -1029,7 +1050,11 @@ end;
 
 procedure TIdTCPConnection.OpenWriteBuffer(const AThreshhold: Integer = -1);
 begin
-  FWriteBuffer := TIdSimpleBuffer.Create;
+  if FWriteBuffer = nil then begin
+    FWriteBuffer := TIdSimpleBuffer.Create;
+  end else begin
+    FWriteBuffer.Clear;
+  end;
   FWriteBufferThreshhold := AThreshhold;
 end;
 
