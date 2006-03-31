@@ -1364,7 +1364,7 @@ begin
       if Assigned(FOnMakeDirectory) then begin
         s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         FOnMakeDirectory(TIdFTPServerThread(ASender.Thread), s);
-        ASender.Reply.SetReply(257, Format(RSFTPDirFileCreated, [s]); {Do not Localize}
+        ASender.Reply.SetReply(257, Format(RSFTPDirFileCreated, [s])); {Do not Localize}
       end else begin
         ASender.Reply.SetReply(550, Format(RSFTPCmdNotImplemented, ['MKD']));    {Do not Localize}
       end;
