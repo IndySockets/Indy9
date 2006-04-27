@@ -2610,36 +2610,35 @@ begin
 
   if (Length(s) = 0) then begin
     VNo := LThread.CurrentArticle;
-    Result := (VNo <> 0);
+    Result := (VNo > 0);
     if not Result then begin
-	    ASender.Reply.NumericCode := 420;  // Current article no not set.
-  	end;
+      ASender.Reply.NumericCode := 420;  // Current article no not set.
+    end;
+    Exit;
+  end;
+
+  if (Copy(s, 1, 1) = '<') then begin
+    VNo := DoCheckMsgID(LThread, s);
+    Result := (VNo > 0);
+    if not Result then begin
+      ASender.Reply.NumericCode := 430 // Article not found
+    end;
+    {
+    RL - per RFC 977, the CurrentArticle should not
+    be updated when selecting an article by MsgID
+    }
   end
   else
   begin
-    if (Copy(s, 1, 1) = '<') then begin
-  		VNo := DoCheckMsgID(LThread, s);
-      Result := (VNo <> 0);
-  	  if not Result then begin
-		    ASender.Reply.NumericCode := 430 // Article not found
-  	  end;
-      {
-      RL - per RFC 977, the CurrentArticle should not
-      be updated when selecting an article by MsgID
-      }
-	  end
-    else
-    begin
-  	  VNo := StrToIntDef(s, 0);
-      if Assigned(OnCheckMsgNo) then begin
-        OnCheckMsgNo(LThread, VNo, VId);
-      end;
-      Result := (Length(VId) <> 0);
-      if Result then begin
-        LThread.FCurrentArticle := VNo;
-      end else begin
-        ASender.Reply.NumericCode := 423;  // Article no does not exist
-      end;
+    VNo := StrToIntDef(s, 0);
+    if (VNo > 0) and Assigned(OnCheckMsgNo) then begin
+      OnCheckMsgNo(LThread, VNo, VId);
+    end;
+    Result := (Length(VId) <> 0);
+    if Result then begin
+      LThread.FCurrentArticle := VNo;
+    end else begin
+      ASender.Reply.NumericCode := 423;  // Article no does not exist
     end;
   end;
 end;
@@ -2649,6 +2648,7 @@ function TIdNNTPServer.LookupMessageRange(ASender: TIdCommand; const AData: Stri
 var
   s: String;
   LThread: TIdNNTPThread;
+  IsRange: Boolean;
 begin
   Result := False;
   LThread := TIdNNTPThread(ASender.Thread);
@@ -2661,25 +2661,38 @@ begin
   s := Trim(AData);
 
   if (Length(s) = 0) then begin
+    IsRange := False;
     VMsgFirst := LThread.CurrentArticle;
   end else begin
-    VMsgFirst := StrToIntDef(Trim(Fetch(s, '-')), 0);
+    IsRange := (Pos('-', s) > 1); {do not localize}
+    if IsRange then begin
+      VMsgFirst := StrToIntDef(Trim(Fetch(s, '-')), 0);
+    end else begin
+      VMsgFirst := StrToIntDef(s, 0);
+    end;
   end;
 
-  if (VMsgFirst <> 0) then begin
+  if (VMsgFirst <= 0) then begin
+    ASender.Reply.NumericCode := 420;
+    Exit;
+  end;
+
+  if IsRange then begin
     s := Trim(s);
     if (Length(s) = 0) then begin
-      VMsgLast := VMsgFirst;
+      VMsgLast := 0;  // return all from VMsgFirst onwards
     end else begin
       VMsgLast := StrToIntDef(s, 0);
-    end;
-    Result := (VMsgLast <> 0);
-    if not Result then begin
-      ASender.Reply.NumericCode := 501;
+      if (VMsgLast < VMsgFirst) then begin
+        ASender.Reply.NumericCode := 501;
+        Exit;
+      end;
     end;
   end else begin
-    ASender.Reply.NumericCode := 420;
+    VMsgLast := VMsgFirst;
   end;
+
+  Result := True;
 end;
 
 function TIdNNTPServer.LookupMessageRangeOrID(ASender: TIdCommand; const AData: String;
@@ -2701,14 +2714,14 @@ begin
 
   if (Copy(s, 1, 1) = '<') then begin
     LFirstMsg := DoCheckMsgID(LThread, s);
-    if (LFirstMsg <> 0) then begin
-      VMsgFirst := LFirstMsg;
-      VMsgLast := LFirstMsg;
-      VMsgID := s;
-      Result := True;
-    end else begin
+    if (LFirstMsg <= 0) then begin
       ASender.Reply.NumericCode := 430;
+      Exit;
     end;
+    VMsgFirst := LFirstMsg;
+    VMsgLast := LFirstMsg;
+    VMsgID := s;
+    Result := True;
   end else begin
     Result := LookupMessageRange(ASender, s, VMsgFirst, VMsgLast);
   end;
