@@ -648,7 +648,7 @@ begin
       end;
     end;
   until LTermPos > 0;
-  dec(LTermPos); // Strip terminators (string len w/o first terminator char)
+  Dec(LTermPos); // Strip terminators (string len w/o first terminator char)
   Result := InputBuffer.Extract(LTermPos + Length(ATerminator)); // Extract actual data
   if (ATerminator = LF) and (LTermPos > 0) and (Result[LTermPos] = CR) then begin
     SetLength(Result, LTermPos - 1);
@@ -726,7 +726,12 @@ begin
     LBufSize := Min(LWorkCount, RecvBufferSize);
     SetLength(LBuf, LBufSize);
 
-    while Connected and (LWorkCount > 0) do begin
+    // RLebeau - don't call Connected() here!  ReadBuffer() already
+    // does that internally. Calling Connected() here can cause an
+    // EIdConnClosedGracefully exception that breaks the loop
+    // prematurely and thus leave unread bytes in the InputBuffer.
+    // Let the loop catch the exception before exiting...
+    while {Connected and} (LWorkCount > 0) do begin
       i := Min(LWorkCount, LBufSize);
       //TODO: Improve this - dont like the use of the exception handler
       //DONE -oAPR: Dont use a string, use a memory buffer or better yet the buffer itself.
@@ -735,9 +740,13 @@ begin
           ReadBuffer(LBuf[0], i);
         except
           on E: Exception do begin
-            i := InputBuffer.Size;
+            // RLebeau - ReadFromStack() inside of ReadBuffer()
+            // could have filled the InputBuffer with more bytes
+            // than actually requested, so don't extract too
+            // many bytes here...
+            i := Min(i, InputBuffer.Size);
             Move(InputBuffer.Memory^, LBuf[0], i);
-            InputBuffer.Clear; //InputBuffer.Remove(InputBuffer.Size);
+            InputBuffer.Remove(i);
             if not (E is EIdConnClosedGracefully) or not AReadUntilDisconnect then begin
               raise;
             end;
