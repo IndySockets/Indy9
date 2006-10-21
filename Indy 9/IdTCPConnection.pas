@@ -747,7 +747,9 @@ begin
             i := Min(i, InputBuffer.Size);
             Move(InputBuffer.Memory^, LBuf[0], i);
             InputBuffer.Remove(i);
-            if not (E is EIdConnClosedGracefully) or not AReadUntilDisconnect then begin
+            if (E is EIdConnClosedGracefully) and AReadUntilDisconnect then begin
+              Break;
+            end else begin
               raise;
             end;
           end;
@@ -851,7 +853,7 @@ begin
   if (AByteCount > 0) and (@ABuffer <> nil) then begin
     // Check if disconnected
     CheckForDisconnect(True, True);
-    if connected then begin
+    if Connected then begin
       if (FWriteBuffer = nil) or AWriteNow then begin
         LBuffer := TIdSimpleBuffer.Create; try
           LBuffer.WriteBuffer(ABuffer, AByteCount);
@@ -1331,8 +1333,8 @@ var
   i: Integer;
 begin
   for i := 0 to AStrings.Count - 1 do begin
-    if AStrings[i] = '.' then begin
-      WriteLn('..');
+    if Copy(AStrings[i], 1, 1) = '.' then begin
+      WriteLn('.' + AStrings[i]);
     end else begin
       WriteLn(AStrings[i]);
     end;
