@@ -1085,6 +1085,8 @@ begin
   if not Assigned(ARequest.Authentication) then
   begin
     // Find wich Authentication method is supported from us.
+    Auth := nil;
+
     for i := 0 to AResponse.WWWAuthenticate.Count - 1 do
     begin
       S := AResponse.WWWAuthenticate[i];
@@ -1550,7 +1552,7 @@ begin
       LMethod := Request.Method;
       if FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then
       begin
-        result := wnGoToURL;
+        Result := wnGoToURL;
         Request.URL := LLocation;
         Request.Method := LMethod;
       end
@@ -1560,11 +1562,12 @@ begin
     else // Just fire the event
     begin
       LMethod := Request.Method;
-      result := wnJustExit;
-      if not FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then // If not Handled
-        RaiseException
-      else
+      Result := wnJustExit;
+      if not FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then begin // If not Handled
+        RaiseException;
+      end else begin
         Response.Location := LLocation;
+      end;
     end;
 
     if FHTTP.Connected then
@@ -1599,9 +1602,9 @@ begin
               if Assigned(Request.Authentication) then
                 Request.Authentication.Reset;
               RaiseException;
-            end else begin
-              if hoInProcessAuth in FHTTP.HTTPOptions then
-                LNeedAutorization := True;
+            end
+            else if hoInProcessAuth in FHTTP.HTTPOptions then begin
+              LNeedAutorization := True;
             end;
           end;
         407:
@@ -1635,15 +1638,16 @@ begin
           ReadContent;
         except end;
         FHTTP.ReadTimeout := LTemp;
-        result := wnAuthRequest
+        Result := wnAuthRequest
       end
       else if (Response.ResponseCode <> 204) then
       begin
         FHTTP.ReadResult(Response);
-        result := wnJustExit;
+        Result := wnJustExit;
       end
-      else
-        result := wnJustExit;
+      else begin
+        Result := wnJustExit;
+      end;
     end;
   end;
 end;
@@ -1651,17 +1655,19 @@ end;
 function TIdCustomHTTP.GetAuthRetries: Integer;
 begin
   if Assigned(Request.Authentication) then begin
-    result := Request.Authentication.AuthRetries;
-  end else
-    result := 0;
+    Result := Request.Authentication.AuthRetries;
+  end else begin
+    Result := 0;
+  end;
 end;
 
 function TIdCustomHTTP.GetProxyAuthRetries: Integer;
 begin
   if Assigned(ProxyParams.Authentication) then begin
-    result := ProxyParams.Authentication.AuthRetries;
-  end else
-    result := 0;
+    Result := ProxyParams.Authentication.AuthRetries;
+  end else begin
+    Result := 0;
+  end;
 end;
 
 end.
