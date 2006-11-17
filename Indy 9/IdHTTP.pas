@@ -730,7 +730,7 @@ begin
     end
     else
     begin
-      if AnsiPos('chunked', AResponse.RawHeaders.Values['Transfer-Encoding']) > 0 then {do not localize}
+      if AnsiPos('chunked', LowerCase(AResponse.RawHeaders.Values['Transfer-Encoding'])) > 0 then {do not localize}
       begin // Chunked
         DoStatus(hsStatusText, [RSHTTPChunkStarted]);
         Size := ChunkSize;
@@ -905,8 +905,8 @@ begin
             if Response.ResponseCode = 200 then
             begin
               // Connection established
-              (IOHandler as TIdSSLIOHandlerSocket).PassThrough := false;
-              break;
+              (IOHandler as TIdSSLIOHandlerSocket).PassThrough := False;
+              Break;
             end
             else begin
               ProcessResponse;
@@ -1433,22 +1433,27 @@ begin
 
   // This is a wrokaround for some HTTP servers wich does not implement properly the HTTP protocol
   FHTTP.OpenWriteBuffer;
-  case Request.Method of
-    hmHead: FHTTP.WriteLn('HEAD ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmGet: FHTTP.WriteLn('GET ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmPost: FHTTP.WriteLn('POST ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    // HTTP 1.1 only
-    hmOptions: FHTTP.WriteLn('OPTIONS ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmTrace: FHTTP.WriteLn('TRACE ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmPut: FHTTP.WriteLn('PUT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmConnect: FHTTP.WriteLn('CONNECT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+  try
+    case Request.Method of
+      hmHead: FHTTP.WriteLn('HEAD ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      hmGet: FHTTP.WriteLn('GET ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      hmPost: FHTTP.WriteLn('POST ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      // HTTP 1.1 only
+      hmOptions: FHTTP.WriteLn('OPTIONS ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      hmTrace: FHTTP.WriteLn('TRACE ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      hmPut: FHTTP.WriteLn('PUT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+      hmConnect: FHTTP.WriteLn('CONNECT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+    end;
+    // write the headers
+    for i := 0 to Request.RawHeaders.Count - 1 do
+      if Length(Request.RawHeaders.Strings[i]) > 0 then
+        FHTTP.WriteLn(Request.RawHeaders.Strings[i]);
+    FHTTP.WriteLn('');
+    FHTTP.CloseWriteBuffer;
+  except
+    FHTTP.CancelWriteBuffer;
+    raise;
   end;
-  // write the headers
-  for i := 0 to Request.RawHeaders.Count - 1 do
-    if Length(Request.RawHeaders.Strings[i]) > 0 then
-      FHTTP.WriteLn(Request.RawHeaders.Strings[i]);
-  FHTTP.WriteLn('');
-  FHTTP.CloseWriteBuffer;
 end;
 
 procedure TIdHTTPProtocol.RetrieveHeaders;
@@ -1541,6 +1546,7 @@ begin
   Result := wnDontKnow;
   LNeedAutorization := False;
   LResponseDigit := Response.ResponseCode div 100;
+
   // Handle Redirects
   if ((LResponseDigit = 3) and (Response.ResponseCode <> 304)) or (Length(Response.Location) > 0) then
   begin
