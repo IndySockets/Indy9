@@ -389,7 +389,8 @@ uses
   IdGlobal, IdComponent, IdCoderMIME, IdResourceStrings;
 
 const
-  ProtocolVersionString: array[TIdHTTPProtocolVersion] of string = ('1.0', '1.1');
+  ProtocolVersionString: array[TIdHTTPProtocolVersion] of string = ('1.0', '1.1'); {do not localize}
+  MethodString: array[TIdHTTPMethod] of String = ('HEAD', 'GET', 'POST', 'OPTIONS', 'TRACE', 'PUT', 'DELETE', 'CONNECT'); {do not localize}
 
 { EIdHTTPProtocolException }
 
@@ -539,7 +540,7 @@ begin
   try
     Post(AURL, ASource, LResponse);
   finally
-    result := LResponse.DataString;
+    Result := LResponse.DataString;
     LResponse.Free;
   end;
 end;
@@ -1102,7 +1103,7 @@ begin
     end;
 
     if Assigned(FOnSelectAuthorization) then begin
-      OnSelectAuthorization(self, Auth, AResponse.WWWAuthenticate);
+      OnSelectAuthorization(Self, Auth, AResponse.WWWAuthenticate);
     end;
 
     ARequest.Authentication := Auth.Create;
@@ -1137,9 +1138,9 @@ begin
               ARequest.Authentication.UserName := ARequest.Username;
               ARequest.Authentication.Password := ARequest.Password;
 
-              OnAuthorization(self, ARequest.Authentication, result);
+              OnAuthorization(self, ARequest.Authentication, Result);
 
-              if result then begin
+              if Result then begin
                 ARequest.BasicAuthentication := True;
                 ARequest.Username := ARequest.Authentication.UserName;
                 ARequest.Password := ARequest.Authentication.Password;
@@ -1228,7 +1229,7 @@ begin
 
               OnProxyAuthorization(self, ProxyParams.Authentication, result);
 
-              if result then begin
+              if Result then begin
                 ProxyParams.BasicAuthentication := true;
                 ProxyParams.ProxyUsername := ProxyParams.Authentication.Username;
                 ProxyParams.ProxyPassword := ProxyParams.Authentication.Password;
@@ -1434,16 +1435,7 @@ begin
   // This is a wrokaround for some HTTP servers wich does not implement properly the HTTP protocol
   FHTTP.OpenWriteBuffer;
   try
-    case Request.Method of
-      hmHead: FHTTP.WriteLn('HEAD ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      hmGet: FHTTP.WriteLn('GET ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      hmPost: FHTTP.WriteLn('POST ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      // HTTP 1.1 only
-      hmOptions: FHTTP.WriteLn('OPTIONS ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      hmTrace: FHTTP.WriteLn('TRACE ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      hmPut: FHTTP.WriteLn('PUT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-      hmConnect: FHTTP.WriteLn('CONNECT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    end;
+    FHTTP.WriteLn(MethodString[Request.Method] + ' ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
     // write the headers
     for i := 0 to Request.RawHeaders.Count - 1 do
       if Length(Request.RawHeaders.Strings[i]) > 0 then
