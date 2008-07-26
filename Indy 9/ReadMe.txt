@@ -1,5 +1,4 @@
-This document provides some notes concerning Indy 9.0.4 beta.
-
+This document provides some notes concerning Indy 9.0
 ============================================
 Winsock 2
 ============================================
