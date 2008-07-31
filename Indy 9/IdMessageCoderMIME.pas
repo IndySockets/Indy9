@@ -128,15 +128,11 @@ uses
 function TIdMessageDecoderInfoMIME.CheckForStart(ASender: TIdMessage;
  ALine: string): TIdMessageDecoder;
 begin
-  if (ASender.MIMEBoundary.Boundary <> '') then begin
-    if AnsiSameText(ALine, '--' + ASender.MIMEBoundary.Boundary) then begin    {Do not Localize}
-      Result := TIdMessageDecoderMIME.Create(ASender);
-    end else if AnsiSameText(ASender.ContentTransferEncoding, 'base64') or    {Do not Localize}
-      AnsiSameText(ASender.ContentTransferEncoding, 'quoted-printable') then begin    {Do not Localize}
-        Result := TIdMessageDecoderMIME.Create(ASender, ALine);
-    end else begin
-      Result := nil;
-    end;
+  if (ASender.MIMEBoundary.Boundary <> '') and AnsiSameText(ALine, '--' + ASender.MIMEBoundary.Boundary) then begin    {Do not Localize}
+    Result := TIdMessageDecoderMIME.Create(ASender);
+  end else if AnsiSameText(ASender.ContentTransferEncoding, 'base64') or    {Do not Localize}
+    AnsiSameText(ASender.ContentTransferEncoding, 'quoted-printable') then begin    {Do not Localize}
+      Result := TIdMessageDecoderMIME.Create(ASender, ALine);
   end else begin
     Result := nil;
   end;
@@ -215,7 +211,7 @@ var
   LDecoder: TIdDecoder;
   LLine: string;
 begin
-  VMsgEnd := FALSE;
+  VMsgEnd := False;
   Result := nil;
   if FBodyEncoded then begin
     s := TIdMessage(Owner).ContentTransferEncoding;
@@ -245,35 +241,35 @@ begin
       if MIMEBoundary <> '' then begin
         if AnsiSameText(LLine, '--' + MIMEBoundary) then begin    {Do not Localize}
           Result := TIdMessageDecoderMIME.Create(Owner);
-          Break;
-        // End of all coders (not quite ALL coders)
-        end
-        else if AnsiSameText(LLine, '--' + MIMEBoundary + '--') then begin    {Do not Localize}
+          Exit;
+        end;
+        if AnsiSameText(LLine, '--' + MIMEBoundary + '--') then begin    {Do not Localize}
           // POP the boundary
           if Owner is TIdMessage then begin
             TIdMessage(Owner).MIMEBoundary.Pop;
           end;
-          Break;
-        // Data to save, but not decode
-        end else if LDecoder = nil then begin
-          if (Length(LLine) > 0) and (LLine[1] = '.') then begin // Process . in front for no encoding    {Do not Localize}
-            Delete(LLine, 1, 1);
-          end;
-          LLine := LLine + EOL;
-          ADestStream.WriteBuffer(LLine[1], Length(LLine));
-        // Data to decode
-        end else begin
-          //for TIdDecoderQuotedPrintable, we have
-          //to make sure all EOLs are intact
-          if LDecoder is TIdDecoderQuotedPrintable then begin
-            LDecoder.DecodeToStream(LLine+EOL,ADestStream);
-          end else if LLine <> '' then begin
-            LDecoder.DecodeToStream(LLine, ADestStream);
-          end;
+          Exit;
+        end;
+      end;
+      if LDecoder = nil then begin
+        if (Length(LLine) > 0) and (LLine[1] = '.') then begin // Process . in front for no encoding    {Do not Localize}
+          Delete(LLine, 1, 1);
+        end;
+        LLine := LLine + EOL;
+        ADestStream.WriteBuffer(LLine[1], Length(LLine));
+      end else begin
+        //for TIdDecoderQuotedPrintable, we have
+        //to make sure all EOLs are intact
+        if LDecoder is TIdDecoderQuotedPrintable then begin
+          LDecoder.DecodeToStream(LLine+EOL, ADestStream);
+        end else if LLine <> '' then begin
+          LDecoder.DecodeToStream(LLine, ADestStream);
         end;
       end;
     until False;
-  finally FreeAndNil(LDecoder); end;
+  finally
+    FreeAndNil(LDecoder);
+  end;
 end;
 
 procedure TIdMessageDecoderMIME.ReadHeader;
