@@ -178,16 +178,22 @@ begin
     FEvent.WaitFor;
     // If terminated while waiting on the event or during the loop
     while not Terminated do begin
-      LNotify := nil;
       try
-        LNotifications := FNotifications.LockList; try
-          if LNotifications.Count > 0 then begin
-            LNotify := TIdNotify(LNotifications.Items[0]);
-            LNotifications.Delete(0);
+        LNotifications := FNotifications.LockList;
+        try
+          if LNotifications.Count = 0 then begin
+            Break;
           end;
-        finally FNotifications.UnlockList; end;
-        Synchronize(LNotify.DoNotify);
-        FreeAndNil(LNotify);
+          LNotify := TIdNotify(LNotifications.Items[0]);
+          LNotifications.Delete(0);
+        finally
+          FNotifications.UnlockList;
+        end;
+        try
+          Synchronize(LNotify.DoNotify);
+        finally
+          FreeAndNil(LNotify);
+        end;
       except // Catch all exceptions especially these which are raised during the application close
       end;
     end;
