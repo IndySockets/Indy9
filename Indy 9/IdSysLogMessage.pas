@@ -641,7 +641,7 @@ begin
     LFreeStack := True;
   end;
   try
-    Hostname := LStack.LocalAddress;
+    Hostname := LStack.WSGetHostName;
   finally
     {Free the stack ONLY if we created it to prevent a memory leak}
     if LFreeStack then begin
