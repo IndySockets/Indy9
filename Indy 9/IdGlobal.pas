@@ -1223,7 +1223,7 @@ end;
 function IsNumeric(const AString: string): Boolean;
 var
   LCode: Integer;
-  LVoid: Integer;
+  LVoid: Int64;
 begin
   Val(AString, LVoid, LCode);
   Result := LCode = 0;
