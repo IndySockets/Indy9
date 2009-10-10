@@ -1071,16 +1071,18 @@ end;
 
 procedure TIdTCPConnection.CloseWriteBuffer;
 begin
-  try
-    FlushWriteBuffer;
-  finally
-    FreeAndNil(FWriteBuffer);
+  if FWriteBuffer <> nil then begin
+    try
+      FlushWriteBuffer;
+    finally
+      FreeAndNil(FWriteBuffer);
+    end;
   end;
 end;
 
 procedure TIdTCPConnection.FlushWriteBuffer(const AByteCount: Integer = -1);
 begin
-  if FWriteBuffer.Size > 0 then begin
+  if (FWriteBuffer <> nil) and (FWriteBuffer.Size > 0) then begin
     if (AByteCount = -1) or (FWriteBuffer.Size < AByteCount) then begin
       WriteBuffer(PChar(FWriteBuffer.Memory)[0], FWriteBuffer.Size, True);
       ClearWriteBuffer;
@@ -1093,7 +1095,9 @@ end;
 
 procedure TIdTCPConnection.ClearWriteBuffer;
 begin
-  FWriteBuffer.Clear;
+  if FWriteBuffer <> nil then begin
+    FWriteBuffer.Clear;
+  end;
 end;
 
 function TIdTCPConnection.InputLn(const AMask: string = ''; AEcho: Boolean = True;
