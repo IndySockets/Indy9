@@ -584,7 +584,7 @@ begin
             WriteStrings(LAttachment.ExtraHeaders);
             WriteLn('');
           end;
-          LDestStream := TIdTCPStream.Create(Self);
+          LDestStream := TIdTCPStream.Create(Self, 8192);
           try
             TIdAttachment(AMsg.MessageParts[i]).Encode(LDestStream);
           finally
