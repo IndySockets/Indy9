@@ -1,7 +1,7 @@
-package Indy60;
+package Indy100;
 
-{$R *.RES}
-{$ALIGN ON}
+{$R *.res}
+{$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
 {$DEBUGINFO ON}
@@ -22,7 +22,7 @@ package Indy60;
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $600000}
-{$DESCRIPTION 'Internet Direct (Indy) for Delphi/C++Builder 6'}
+{$DESCRIPTION 'Internet Direct (Indy) for BDS 2006'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
 

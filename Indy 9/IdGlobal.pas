@@ -323,6 +323,12 @@ type
   function MemoryPos(const ASubStr: String; MemBuff: PChar; MemorySize: Integer): Integer;
   function TimeZoneBias: TDateTime;
   function UpCaseFirst(const AStr: string): string;
+
+  //You could possibly use the standard StrInt and StrIntDef but these
+  //also remove spaces from the string using the trim functions.
+  function IndyStrToInt(const S: string): Integer; overload;
+  function IndyStrToInt(const S: string; ADefault: Integer): Integer; overload;
+
   {$IFDEF MSWINDOWS}
   function Win32Type : TIdWin32Type;
   {$ENDIF}
@@ -2348,6 +2354,16 @@ begin
   end;
 end;
 
+function IndyStrToInt(const S: string): Integer;
+begin
+  Result := StrToInt(Trim(S));
+end;
+
+function IndyStrToInt(const S: string; ADefault: Integer): Integer;
+begin
+  Result := StrToIntDef(Trim(S), ADefault);
+end;
+
 initialization
   {$IFDEF LINUX}
   GStackClass := TIdStackLinux;
@@ -2371,4 +2387,3 @@ initialization
 finalization
   FreeAndNil(FIdPorts);
 end.
-

@@ -22,7 +22,7 @@ package Indy70;
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $600000}
-{$DESCRIPTION 'Internet Direct (Indy) for D7'}
+{$DESCRIPTION 'Internet Direct (Indy) for Delphi 7'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
 

@@ -1,7 +1,7 @@
-package dclIndy50;
+package dclIndy110;
 
-{$R *.RES}
-{$ALIGN ON}
+{$R *.res}
+{$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
 {$DEBUGINFO ON}
@@ -21,14 +21,15 @@ package dclIndy50;
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
-{$IMAGEBASE $400000}
-{$DESCRIPTION 'Internet Direct (Indy) for Delphi/C++Builder 5 Property and Component Editors'}
+{$IMAGEBASE $600000}
+{$DESCRIPTION 'Internet Direct (Indy) for RAD Studio 2007 Property and Component Editors'}
 {$DESIGNONLY}
 {$IMPLICITBUILD OFF}
 
 requires
-  Vcl50,
-  Indy50;
+  vcl,
+  designide,
+  Indy110;
 
 contains
   IdAbout in 'IdAbout.pas',
@@ -39,3 +40,4 @@ contains
   IdRegister in 'IdRegister.pas';
 
 end.
+

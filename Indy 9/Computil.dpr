@@ -36,30 +36,31 @@ uses
   Windows, SysUtils, Registry, Classes;
 
 type
-  TWhichOption = (woHppModify,woSetupD2,woSetupD3,woSetupD4,woSetupD5,
-   woSetupD6,woSetupD7,woSetupD8,woSetupD9,woSetupC1,woSetupC3,woSetupC4,
-   woSetupC5,woSetupC6,woSetupC7,woSetupC8,woSetupC9,woInvalid);
+  TWhichOption = (
+   woHppModify,woSetupD2,woSetupD3,woSetupD4,woSetupD5,woSetupD6,woSetupD7,
+   woSetupD8,woSetupD9,woSetupD10,woSetupD11,woSetupD12,woSetupD14,woSetupD15,
+   woSetupC1,woSetupC3,woSetupC4,woSetupC5,woSetupC6,woSetupC7,woSetupC8,
+   woSetupC9,woSetupC10,woSetupC11,woSetupC12,woSetupC14,woSetupC15,woInvalid);
 
 var
   Options: array[TWhichOption] of String = ('HppModify','SetupD2','SetupD3',
-   'SetupD4','SetupD5','SetupD6','SetupD7','SetupD8','SetupD9',
-   'SetupC1','SetupC3','SetupC4','SetupC5','SetupC6','SetupC7','SetupC8',
-   'SetupC9','Invalid');
+   'SetupD4','SetupD5','SetupD6','SetupD7','SetupD8','SetupD9','SetupD10',
+   'SetupD11','SetupD12','SetupD14','SetupD15','SetupC1','SetupC3','SetupC4',
+   'SetupC5','SetupC6','SetupC7','SetupC8','SetupC9','SetupC10','SetupC11',
+   'SetupC12','SetupC14','SetupC15','Invalid');
   WhichOption: TWhichOption;
   CmdParam: string;
 
   procedure HPPModify;
-
   var
     InFile: file;
     OutFile: text;
-    Line: string;
+    Line: AnsiString;
     Buffer: pointer;
-    BufPtr: PChar;
+    BufPtr: PAnsiChar;
     BufSize: longint;
     EOL: boolean;
-
-  begin { HPPModify }
+  begin
   // Fix C++Builder HPP conversion bug:
   //   - Input line in RVDefine.pas is
   //       TRaveUnits = {$IFDEF WIN32}type{$ENDIF} TRaveFloat;
@@ -106,27 +107,21 @@ var
     CloseFile(OutFile);
   end; { HPPModify }
 
-  procedure SetPath(EnvName: string;
-                    RegRoot: string);
-
+  procedure SetPath(EnvName: string; RegRoot: string);
   var
     CompilerFound: boolean;
     SysDirFound: boolean;
     KeyOpened: boolean;
     EnvUpdated: boolean;
-    VarName: string;
     EnvList: TStringList;
     SysDir: string;
     ShortPath: string;
     LongPath: string;
+  begin
+    CompilerFound := GetEnvironmentVariable(PChar(EnvName), nil, 0) <> 0;
+    SysDirFound := GetEnvironmentVariable('NDWINSYS', nil, 0) <> 0;
 
-  begin { SetPath }
-    VarName := EnvName;
-    CompilerFound := GetEnvironmentVariable(@VarName[1],nil,0) <> 0;
-    VarName := 'NDWINSYS';
-    SysDirFound := GetEnvironmentVariable(@VarName[1],nil,0) <> 0;
-
-    If not CompilerFound or not SysDirFound then begin
+    If (not CompilerFound) or (not SysDirFound) then begin
       EnvUpdated := False;
       EnvList := TStringList.Create;
       try
@@ -135,13 +130,13 @@ var
         end; { if }
 
         If not CompilerFound then begin { Get compiler path and add to string list }
-          With TRegistry.Create(KEY_READ) do try
+          With TRegistry.Create do try
             RootKey := HKEY_LOCAL_MACHINE;
-            KeyOpened := OpenKey(RegRoot, False);
+            KeyOpened := OpenKeyReadOnly(RegRoot);
             if not KeyOpened then begin
               Writeln('Resetting registry rootkey to HKCU, and retrying');
               RootKey := HKEY_CURRENT_USER;
-              KeyOpened := OpenKey(RegRoot, False);
+              KeyOpened := OpenKeyReadOnly(RegRoot);
             End;
             if KeyOpened and ValueExists('RootDir') then begin
               LongPath := ReadString('RootDir');
@@ -162,8 +157,8 @@ var
         end; { if }
 
         If not SysDirFound then begin { Get System Directory and add to string list }
-          SetLength(SysDir, 255);
-          SetLength(SysDir, GetSystemDirectory(@SysDir[1], 255));
+          SetLength(SysDir, MAX_PATH);
+          SetLength(SysDir, GetSystemDirectory(PChar(SysDir), MAX_PATH));
           EnvList.Add('SET NDWINSYS=' + SysDir);
           EnvUpdated := True;
         end; { if }
@@ -189,59 +184,30 @@ begin
   end; { while }
 
   Case WhichOption of
-    woHppModify: begin
-      HPPModify;
-    end;
-    woSetupD2: begin
-      SetPath('NDD2','Software\Borland\Delphi\2.0');
-    end;
-    woSetupD3: begin
-      SetPath('NDD3','Software\Borland\Delphi\3.0');
-    end;
-    woSetupD4: begin
-      SetPath('NDD4','Software\Borland\Delphi\4.0');
-    end;
-    woSetupD5: begin
-      SetPath('NDD5','Software\Borland\Delphi\5.0');
-    end;
-    woSetupD6: begin
-      SetPath('NDD6','Software\Borland\Delphi\6.0');
-    end;
-    woSetupD7: begin
-      SetPath('NDD7','Software\Borland\Delphi\7.0');
-    end;
-    woSetupD8: begin
-      SetPath('NDD8','Software\Borland\Delphi\8.0');
-    end;
-    woSetupD9: begin
-      SetPath('NDD9','Software\Borland\Delphi\9.0');
-    end;
-    woSetupC1: begin
-      SetPath('NDC1','Software\Borland\C++Builder\1.0');
-    end;
-    woSetupC3: begin
-      SetPath('NDC3','Software\Borland\C++Builder\3.0');
-    end;
-    woSetupC4: begin
-      SetPath('NDC4','Software\Borland\C++Builder\4.0');
-    end;
-    woSetupC5: begin
-      SetPath('NDC5','Software\Borland\C++Builder\5.0');
-    end;
-    woSetupC6: begin
-      SetPath('NDC6','Software\Borland\C++Builder\6.0');
-    end;
-    woSetupC7: begin
-      SetPath('NDC7','Software\Borland\C++Builder\7.0');
-    end;
-    woSetupC8: begin
-      SetPath('NDC8','Software\Borland\C++Builder\8.0');
-    end;
-    woSetupC9: begin
-      SetPath('NDC9','Software\Borland\C++Builder\9.0');
-    end;
-    woInvalid: begin
-      Writeln('Invalid Parameter');
-    end;
+    woHppModify: HPPModify;
+    woSetupD2:  SetPath('NDD2','Software\Borland\Delphi\2.0');
+    woSetupD3:  SetPath('NDD3','Software\Borland\Delphi\3.0');
+    woSetupD4:  SetPath('NDD4','Software\Borland\Delphi\4.0');
+    woSetupD5:  SetPath('NDD5','Software\Borland\Delphi\5.0');
+    woSetupD6:  SetPath('NDD6','Software\Borland\Delphi\6.0');
+    woSetupD7:  SetPath('NDD7','Software\Borland\Delphi\7.0');
+    woSetupD8:  SetPath('NDD8','Software\Borland\Delphi\8.0');
+    woSetupD9:  SetPath('NDD9','Software\Borland\BDS\3.0');
+    woSetupD10: SetPath('NDD10','Software\Borland\BDS\4.0');
+    woSetupD11: SetPath('NDD11','Software\Borland\BDS\5.0');
+    woSetupD12: SetPath('NDD12','Software\CodeGear\BDS\6.0');
+    woSetupD14: SetPath('NDD14','Software\CodeGear\BDS\7.0');
+    woSetupD15: SetPath('NDD15','Software\Embarcadero\BDS\8.0');
+    woSetupC1:  SetPath('NDC1','Software\Borland\C++Builder\1.0');
+    woSetupC3:  SetPath('NDC3','Software\Borland\C++Builder\3.0');
+    woSetupC4:  SetPath('NDC4','Software\Borland\C++Builder\4.0');
+    woSetupC5:  SetPath('NDC5','Software\Borland\C++Builder\5.0');
+    woSetupC6:  SetPath('NDC6','Software\Borland\C++Builder\6.0');
+    woSetupC10: SetPath('NDC10','Software\Borland\BDS\4.0');
+    woSetupC11: SetPath('NDC11','Software\Borland\BDS\5.0');
+    woSetupC12: SetPath('NDC12','Software\CodeGear\BDS\6.0');
+    woSetupC14: SetPath('NDC14','Software\CodeGear\BDS\7.0');
+    woSetupC15: SetPath('NDC15','Software\Embarcadero\BDS\8.0');
+    woInvalid:  Writeln('Invalid Parameter');
   end; { case }
 end.
