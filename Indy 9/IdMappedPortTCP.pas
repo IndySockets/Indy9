@@ -324,8 +324,8 @@ begin
       TIdTcpClient(FOutboundClient).Connect(FConnectTimeOut);
       DoOutboundClientConnect(Self);
 
-      FNetData := Connection.CurrentReadBuffer;
-      if Length(FNetData) > 0 then begin
+      if Connection.InputBuffer.Size > 0 then begin
+        FNetData := Connection.InputBuffer.Extract(Connection.InputBuffer.Size);
         DoLocalClientData(Self);
         FOutboundClient.Write(FNetData);
       end;//if
